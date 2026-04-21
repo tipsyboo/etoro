@@ -146,7 +146,8 @@ volumeMounts: []
 #   mountPath: "/etc/foo"
 #   readOnly: true
 
-nodeSelector: {}
+nodeSelector:
+  kubernetes.azure.com/mode: user
 
 tolerations: []
 
@@ -155,5 +156,5 @@ affinity: {}
 topologySpreadConstraints:
   - maxSkew: 1
     topologyKey: kubernetes.io/hostname
-    whenUnsatisfiable: DoNotSchedule
+    whenUnsatisfiable: ScheduleAnyway
     # labelSelector is automatically populated by the template if omitted
