@@ -1,0 +1,29 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "simple-web.fullname" . }}
+  labels:
+    {{- include "simple-web.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "simple-web.fullname" . }}
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  triggers:
+    # 1. CPU Trigger
+    - type: cpu
+      metadata:
+        type: Utilization
+        value: "70"
+    # 2. Memory Trigger
+    - type: memory
+      metadata:
+        type: Utilization
+        value: "70"
+    # 3. Cron Schedule Trigger (8:00 AM to 12:00 AM)
+    - type: cron
+      metadata:
+        timezone: Asia/Jerusalem
+        start: "0 8 * * *"
+        end: "0 0 * * *"
+        desiredReplicas: "3"
