@@ -155,5 +155,5 @@ affinity: {}
 topologySpreadConstraints:
   - maxSkew: 1
     topologyKey: kubernetes.io/hostname
-    whenUnsatisfiable: ScheduleAnyway
+    whenUnsatisfiable: DoNotSchedule
     # labelSelector is automatically populated by the template if omitted
