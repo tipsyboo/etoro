@@ -1,6 +1,14 @@
 pipeline {
     agent any
 
+    options {
+        disableConcurrentBuilds()
+    }
+
+    triggers {
+        githubPush()
+    }
+
     parameters {
         choice(name: 'ACTION', choices: ['Deploy', 'Destroy'], description: 'Select the Helm action to perform')
     }
