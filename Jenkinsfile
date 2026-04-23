@@ -11,6 +11,7 @@ pipeline {
 
     parameters {
         choice(name: 'ACTION', choices: ['Deploy', 'Destroy'], description: 'Select the Helm action to perform')
+        string(name: 'NOTIFY_EMAIL', defaultValue: 'devops@tipsy.boo', description: 'Email address to send status notifications')
     }
 
     environment {
@@ -25,15 +26,12 @@ pipeline {
         stage('Initialize & Detect Changes') {
             steps {
                 script {
-                    // Check if this was a manual build
                     def causes = currentBuild.getBuildCauses().toString()
                     def isManual = causes.contains('UserCause') || causes.contains('UserIdCause')
                     
-                    // Check for code/infra changes using git
                     def changedFiles = sh(script: 'git diff-tree --no-commit-id --name-only -r HEAD', returnStdout: true).trim()
                     def hasCodeChanges = changedFiles.split('\n').any { it.startsWith('simple-web/') || it == 'Jenkinsfile' }
                     
-                    // Set a global flag for the rest of the pipeline
                     env.SHOULD_RUN_DEPLOYMENT = (isManual || hasCodeChanges).toString()
                     
                     echo "Manual Build: ${isManual}"
@@ -111,6 +109,7 @@ pipeline {
                         script: "kubectl get svc nginx-ingress-controller -n ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --kubeconfig ${KUBECONFIG}",
                         returnStdout: true
                     ).trim()
+                    env.INGRESS_IP = INGRESS_IP
 
                     echo "Testing external access to http://${INGRESS_IP}/pavelni ..."
 
@@ -138,6 +137,28 @@ pipeline {
 
     post {
         always {
+            script {
+                def subject = "${currentBuild.currentResult}: Pipeline ${env.JOB_NAME} [${env.BUILD_NUMBER}]"
+                def body = """
+                    Build Status: ${currentBuild.currentResult}
+                    Build Number: ${env.BUILD_NUMBER}
+                    Action Performed: ${params.ACTION}
+                    
+                    Pipeline Link: ${env.BUILD_URL}
+                    
+                    Deployment Details:
+                    Namespace: ${env.NAMESPACE}
+                    Release: ${env.RELEASE_NAME}
+                    Ingress IP: ${env.INGRESS_IP ?: 'N/A'}
+                    
+                    (This is an automated notification from your DevOps Pipeline)
+                """.stripIndent()
+
+                echo "Sending notification email to ${params.NOTIFY_EMAIL}..."
+                mail to: params.NOTIFY_EMAIL,
+                     subject: subject,
+                     body: body
+            }
             sh "rm -f ${KUBECONFIG}"
             cleanWs()
         }
