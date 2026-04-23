@@ -44,6 +44,7 @@ pipeline {
                     expression { params.ACTION == 'Deploy' }
                     anyOf {
                         expression { currentBuild.getBuildCauses().toString().contains('UserCause') }
+                        expression { currentBuild.getBuildCauses().toString().contains('UserIdCause') }
                         changeset "simple-web/**"
                         changeset "Jenkinsfile"
                     }
@@ -57,7 +58,9 @@ pipeline {
         stage('Execute Action') {
             when {
                 anyOf {
+                    expression { params.ACTION == 'Destroy' }
                     expression { currentBuild.getBuildCauses().toString().contains('UserCause') }
+                    expression { currentBuild.getBuildCauses().toString().contains('UserIdCause') }
                     changeset "simple-web/**"
                     changeset "Jenkinsfile"
                 }
@@ -88,6 +91,7 @@ pipeline {
                     expression { params.ACTION == 'Deploy' }
                     anyOf {
                         expression { currentBuild.getBuildCauses().toString().contains('UserCause') }
+                        expression { currentBuild.getBuildCauses().toString().contains('UserIdCause') }
                         changeset "simple-web/**"
                         changeset "Jenkinsfile"
                     }
