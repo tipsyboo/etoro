@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "simple-web.fullname" . }}-test-security"
+  labels:
+    {{- include "simple-web.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  containers:
+    - name: audit
+      image: busybox:1.37.0
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          echo "--- Security Audit: ServiceAccount Boundary ---"
+          if [ -f /var/run/secrets/kubernetes.io/serviceaccount/token ]; then
+            echo "FAILURE: ServiceAccount token was found!"
+            exit 1
+          else
+            echo "SUCCESS: No ServiceAccount token found."
+          fi
+
+          echo "--- Security Audit: Capability Stripping (Stripped Root) ---"
+          
+          echo "Testing CAP_CHOWN (should fail)..."
+          touch /tmp/testfile
+          chown 1000 /tmp/testfile 2>/dev/null
+          if [ $? -eq 0 ]; then
+            echo "FAILURE: Managed to chown a file. CAP_CHOWN is still active!"
+            exit 1
+          else
+            echo "SUCCESS: chown failed as expected."
+          fi
+          
+          echo "AUDIT COMPLETE: All security boundaries are intact."
+  restartPolicy: Never
