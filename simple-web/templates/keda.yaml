@@ -21,11 +21,11 @@ spec:
       metadata:
         type: Utilization
         value: "70"
-    # 3. Cron Schedule Trigger (2:00 AM to 4:00 AM)
+    # 3. Cron Schedule Trigger (8:00 AM to 12:00 AM)
     - type: cron
       metadata:
         timezone: Asia/Jerusalem
-        start: "0 2 * * *"
-        end: "0 4 * * *"
+        start: "0 8 * * *"
+        end: "0 0 * * *"
         desiredReplicas: "3"
 {{- end }}
