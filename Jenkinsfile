@@ -59,6 +59,40 @@ pipeline {
                 }
             }
         }
+
+        stage('Verify External Access') {
+            when {
+                expression { params.ACTION == 'Deploy' }
+            }
+            steps {
+                script {
+                    def INGRESS_IP = sh(
+                        script: "kubectl get svc nginx-ingress-controller -n ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --kubeconfig ${KUBECONFIG}",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Testing external access to http://${INGRESS_IP}/pavelni ..."
+
+                    timeout(time: 2, unit: 'MINUTES') {
+                        waitUntil {
+                            def status = sh(
+                                script: "curl -s -o /dev/null -w '%{http_code}' http://${INGRESS_IP}/pavelni",
+                                returnStdout: true
+                            ).trim()
+                            
+                            if (status == "200") {
+                                echo "Success: Received HTTP 200 OK from External IP"
+                                return true
+                            } else {
+                                echo "Retrying... current status: ${status}"
+                                sleep 5
+                                return false
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     post {
