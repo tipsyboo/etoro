@@ -8,19 +8,19 @@ metadata:
 spec:
   scaleTargetRef:
     name: {{ include "simple-web.fullname" . }}
-  minReplicaCount: 1
-  maxReplicaCount: 5
+  minReplicaCount: {{ .Values.autoscaling.minReplicas }}
+  maxReplicaCount: {{ .Values.autoscaling.maxReplicas }}
   triggers:
     # 1. CPU Trigger
     - type: cpu
       metadata:
         type: Utilization
-        value: "70"
+        value: {{ .Values.autoscaling.targetCPUUtilizationPercentage | quote }}
     # 2. Memory Trigger
     - type: memory
       metadata:
         type: Utilization
-        value: "70"
+        value: {{ .Values.autoscaling.targetMemoryUtilizationPercentage | quote }}
     # 3. Cron Schedule Trigger (8:00 AM to 12:00 AM)
     - type: cron
       metadata:
