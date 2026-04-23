@@ -8,6 +8,7 @@ metadata:
     "helm.sh/hook": test
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
+  automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
   containers:
     - name: audit
       image: busybox:1.37.0
