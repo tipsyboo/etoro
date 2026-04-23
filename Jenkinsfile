@@ -37,42 +37,63 @@ pipeline {
                 }
             }
         }
-
-        stage('Lint Helm Chart') {
-            when {
-                expression { params.ACTION == 'Deploy' }
-            }
-            steps {
-                sh 'helm lint ./simple-web'
-            }
-        }
-
-        stage('Execute Action') {
-            steps {
-                script {
-                    if (params.ACTION == 'Deploy') {
-                        echo "Deploying ${RELEASE_NAME} to ${NAMESPACE}..."
-                        sh "helm upgrade --install ${RELEASE_NAME} ./simple-web -n ${NAMESPACE} --kubeconfig ${KUBECONFIG}"
-                        
-                        echo "Waiting for deployment rollout..."
-                        sh "kubectl rollout status deployment/${RELEASE_NAME} -n ${NAMESPACE} --kubeconfig ${KUBECONFIG} --timeout=90s"
-
-                        echo "Running internal smoke tests..."
-                        sh "helm test ${RELEASE_NAME} -n ${NAMESPACE} --kubeconfig ${KUBECONFIG}"
-                    } 
-                    else if (params.ACTION == 'Destroy') {
-                        echo "Destroying ${RELEASE_NAME} from ${NAMESPACE}..."
-                        sh "helm uninstall ${RELEASE_NAME} -n ${NAMESPACE} --kubeconfig ${KUBECONFIG}"
-                    }
-                }
+stage('Lint Helm Chart') {
+    when {
+        allof {
+            expression { params.ACTION == 'Deploy' }
+            anyOf {
+                expression { currentBuild.getBuildCauses().toString().contains('UserCause') }
+                changeset "simple-web/**"
+                changeset "Jenkinsfile"
             }
         }
+    }
+    steps {
+        sh 'helm lint ./simple-web'
+    }
+}
 
-        stage('Verify External Access') {
-            when {
-                expression { params.ACTION == 'Deploy' }
+stage('Execute Action') {
+    when {
+        anyOf {
+            expression { currentBuild.getBuildCauses().toString().contains('UserCause') }
+            changeset "simple-web/**"
+            changeset "Jenkinsfile"
+        }
+    }
+    steps {
+        script {
+            if (params.ACTION == 'Deploy') {
+                echo "Deploying ${RELEASE_NAME} to ${NAMESPACE}..."
+                sh "helm upgrade --install ${RELEASE_NAME} ./simple-web -n ${NAMESPACE} --kubeconfig ${KUBECONFIG}"
+
+                echo "Waiting for deployment rollout..."
+                sh "kubectl rollout status deployment/${RELEASE_NAME} -n ${NAMESPACE} --kubeconfig ${KUBECONFIG} --timeout=90s"
+
+                echo "Running internal smoke tests..."
+                sh "helm test ${RELEASE_NAME} -n ${NAMESPACE} --kubeconfig ${KUBECONFIG}"
+            } 
+            else if (params.ACTION == 'Destroy') {
+                echo "Destroying ${RELEASE_NAME} from ${NAMESPACE}..."
+                sh "helm uninstall ${RELEASE_NAME} -n ${NAMESPACE} --kubeconfig ${KUBECONFIG}"
             }
-            steps {
+        }
+    }
+}
+
+stage('Verify External Access') {
+    when {
+        allof {
+            expression { params.ACTION == 'Deploy' }
+            anyOf {
+                expression { currentBuild.getBuildCauses().toString().contains('UserCause') }
+                changeset "simple-web/**"
+                changeset "Jenkinsfile"
+            }
+        }
+    }
+    steps {
+...
                 script {
                     def INGRESS_IP = sh(
                         script: "kubectl get svc nginx-ingress-controller -n ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --kubeconfig ${KUBECONFIG}",
