@@ -22,16 +22,39 @@ pipeline {
     }
 
     stages {
+        stage('Initialize & Detect Changes') {
+            steps {
+                script {
+                    // Check if this was a manual build
+                    def causes = currentBuild.getBuildCauses().toString()
+                    def isManual = causes.contains('UserCause') || causes.contains('UserIdCause')
+                    
+                    // Check for code/infra changes using git
+                    def changedFiles = sh(script: 'git diff-tree --no-commit-id --name-only -r HEAD', returnStdout: true).trim()
+                    def hasCodeChanges = changedFiles.split('\n').any { it.startsWith('simple-web/') || it == 'Jenkinsfile' }
+                    
+                    // Set a global flag for the rest of the pipeline
+                    env.SHOULD_RUN_DEPLOYMENT = (isManual || hasCodeChanges).toString()
+                    
+                    echo "Manual Build: ${isManual}"
+                    echo "Code Changes Detected: ${hasCodeChanges}"
+                    echo "Deployment Logic Active: ${env.SHOULD_RUN_DEPLOYMENT}"
+                }
+            }
+        }
+
         stage('Azure & AKS Authentication') {
+            when {
+                anyOf {
+                    expression { params.ACTION == 'Destroy' }
+                    expression { env.SHOULD_RUN_DEPLOYMENT == "true" }
+                }
+            }
             steps {
                 script {
                     sh '''
                     az login -i
-                    
-                    # Fetch cluster credentials into the workspace-specific kubeconfig
                     az aks get-credentials -n $CLUSTER_NAME -g $RESOURCE_GROUP -f $KUBECONFIG
-                    
-                    # Convert auth for MSI
                     kubelogin convert-kubeconfig -l msi --kubeconfig $KUBECONFIG
                     '''
                 }
@@ -42,12 +65,7 @@ pipeline {
             when {
                 allOf {
                     expression { params.ACTION == 'Deploy' }
-                    anyOf {
-                        expression { currentBuild.getBuildCauses().toString().contains('UserCause') }
-                        expression { currentBuild.getBuildCauses().toString().contains('UserIdCause') }
-                        changeset "simple-web/**"
-                        changeset "Jenkinsfile"
-                    }
+                    expression { env.SHOULD_RUN_DEPLOYMENT == "true" }
                 }
             }
             steps {
@@ -59,10 +77,7 @@ pipeline {
             when {
                 anyOf {
                     expression { params.ACTION == 'Destroy' }
-                    expression { currentBuild.getBuildCauses().toString().contains('UserCause') }
-                    expression { currentBuild.getBuildCauses().toString().contains('UserIdCause') }
-                    changeset "simple-web/**"
-                    changeset "Jenkinsfile"
+                    expression { env.SHOULD_RUN_DEPLOYMENT == "true" }
                 }
             }
             steps {
@@ -70,10 +85,8 @@ pipeline {
                     if (params.ACTION == 'Deploy') {
                         echo "Deploying ${RELEASE_NAME} to ${NAMESPACE}..."
                         sh "helm upgrade --install ${RELEASE_NAME} ./simple-web -n ${NAMESPACE} --kubeconfig ${KUBECONFIG}"
-                        
-                        echo "Waiting for deployment rollout..."
                         sh "kubectl rollout status deployment/${RELEASE_NAME} -n ${NAMESPACE} --kubeconfig ${KUBECONFIG} --timeout=90s"
-
+                        
                         echo "Running internal smoke tests..."
                         sh "helm test ${RELEASE_NAME} -n ${NAMESPACE} --kubeconfig ${KUBECONFIG}"
                     } 
@@ -89,12 +102,7 @@ pipeline {
             when {
                 allOf {
                     expression { params.ACTION == 'Deploy' }
-                    anyOf {
-                        expression { currentBuild.getBuildCauses().toString().contains('UserCause') }
-                        expression { currentBuild.getBuildCauses().toString().contains('UserIdCause') }
-                        changeset "simple-web/**"
-                        changeset "Jenkinsfile"
-                    }
+                    expression { env.SHOULD_RUN_DEPLOYMENT == "true" }
                 }
             }
             steps {
