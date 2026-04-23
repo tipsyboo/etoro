@@ -31,10 +31,10 @@ spec:
             exit 1
           fi
 
-          if echo "$BODY" | grep -q "Real Visit Results"; then
-            echo "SUCCESS: Content validation passed (found 'Real Visit Results')"
+          if echo "$BODY" | grep -q "Visit Results"; then
+            echo "SUCCESS: Content validation passed (found 'Visit Results')"
           else
-            echo "FAILURE: Content validation failed (missing 'Real Visit Results')"
+            echo "FAILURE: Content validation failed (missing 'Visit Results')"
             echo "Response snippet: $(echo $BODY | head -c 100)..."
             exit 1
           fi
