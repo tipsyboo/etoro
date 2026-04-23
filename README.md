@@ -15,7 +15,6 @@ The application is a legacy Python 2.7 script that requires root permissions to 
 To ensure the application is resilient to node failures and follows AKS best practices:
 *   **Topology Spread Constraints**: I configured `maxSkew: 1` using the `kubernetes.io/hostname` key. This ensures the scheduler distributes the 3 replicas across different nodes.
 *   **Availability vs. Distribution**: I set `whenUnsatisfiable: ScheduleAnyway`. This prioritizes keeping the app running on a single node if others fail, rather than leaving pods in a `Pending` state.
-*   **Pod Disruption Budget**: Configured with `minAvailable: 1`. This provides "availability insurance" during planned maintenance (like node drains), ensuring Kubernetes never takes down the last remaining pod until a replacement is healthy.
 *   **Node Pool Isolation**: I implemented a `nodeSelector` for `kubernetes.azure.com/mode: user`. This keeps application workloads on "User Pools" and off the "System Pools," protecting the cluster's internal services.
 
 ### 3. Resource Optimization
@@ -54,11 +53,14 @@ The pipeline performs an automated end-to-end check after deployment:
 ### Jenkins Pipeline
 The `Jenkinsfile` provides a fully automated lifecycle for the chart:
 *   **Continuous Deployment**: Integrated with GitHub Webhooks (`githubPush()`) to trigger an automated `Deploy` action on every commit to the main branch.
-*   **Conditional Builds**: Optimized to skip deployment and testing stages for documentation-only changes. The pipeline uses `changeset` filtering to ensure it only runs when the Helm chart or the `Jenkinsfile` itself is modified.
+*   **Conditional Builds**: Optimized to skip deployment and testing stages for documentation-only changes. The pipeline uses a `Initialize & Detect Changes` stage to ensure it only runs when the Helm chart or the `Jenkinsfile` itself is modified.
 *   **Concurrency Protection**: Implemented `disableConcurrentBuilds()` to prevent race conditions and Helm state locks during overlapping deployments.
 *   **Authentication**: Uses Managed Identity (`az login -i`) and `kubelogin` for secure, passwordless access to AKS.
 *   **Synchronization**: Uses `kubectl rollout status` to block the pipeline until the new version is fully healthy.
 *   **Actions**: Supports both `Deploy` and `Destroy` actions via pipeline parameters.
+
+## Future Enhancements
+*   **Pod Disruption Budget (PDB)**: I have implemented a PDB template with `minAvailable: 1` to ensure zero downtime during node maintenance. This is currently **disabled** (`podDisruptionBudget.enabled: false`) due to cluster-level RBAC restrictions on the `policy` API group. 
 
 ---
 *Developed by Pavel Nikolaichuk - DevOps Technical Assignment.*
