@@ -159,3 +159,7 @@ topologySpreadConstraints:
 
 keda:
   enabled: true
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

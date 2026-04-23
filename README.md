@@ -15,6 +15,7 @@ The application is a legacy Python 2.7 script that requires root permissions to 
 To ensure the application is resilient to node failures and follows AKS best practices:
 *   **Topology Spread Constraints**: I configured `maxSkew: 1` using the `kubernetes.io/hostname` key. This ensures the scheduler distributes the 3 replicas across different nodes.
 *   **Availability vs. Distribution**: I set `whenUnsatisfiable: ScheduleAnyway`. This prioritizes keeping the app running on a single node if others fail, rather than leaving pods in a `Pending` state.
+*   **Pod Disruption Budget**: Configured with `minAvailable: 1`. This provides "availability insurance" during planned maintenance (like node drains), ensuring Kubernetes never takes down the last remaining pod until a replacement is healthy.
 *   **Node Pool Isolation**: I implemented a `nodeSelector` for `kubernetes.azure.com/mode: user`. This keeps application workloads on "User Pools" and off the "System Pools," protecting the cluster's internal services.
 
 ### 3. Resource Optimization
