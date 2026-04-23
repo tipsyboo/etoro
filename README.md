@@ -55,6 +55,7 @@ The `Jenkinsfile` provides a fully automated lifecycle for the chart:
 *   **Continuous Deployment**: Integrated with GitHub Webhooks (`githubPush()`) to trigger an automated `Deploy` action on every commit to the main branch.
 *   **Conditional Builds**: Optimized to skip deployment and testing stages for documentation-only changes. The pipeline uses a `Initialize & Detect Changes` stage to ensure it only runs when the Helm chart or the `Jenkinsfile` itself is modified.
 *   **Concurrency Protection**: Implemented `disableConcurrentBuilds()` to prevent race conditions and Helm state locks during overlapping deployments.
+*   **Automated Notifications**: Configured an `always` post-build block to send email notifications. The email includes the build status, Helm action, and the dynamic Ingress IP for quick verification.
 *   **Authentication**: Uses Managed Identity (`az login -i`) and `kubelogin` for secure, passwordless access to AKS.
 *   **Synchronization**: Uses `kubectl rollout status` to block the pipeline until the new version is fully healthy.
 *   **Actions**: Supports both `Deploy` and `Destroy` actions via pipeline parameters.

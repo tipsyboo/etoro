@@ -149,7 +149,7 @@ pipeline {
                     Deployment Details:
                     Namespace: ${env.NAMESPACE}
                     Release: ${env.RELEASE_NAME}
-                    Ingress IP: ${env.INGRESS_IP ?: 'N/A'}
+                    App URL: ${env.INGRESS_IP ? "http://${env.INGRESS_IP}/pavelni" : 'N/A'}
                     
                     (This is an automated notification from your DevOps Pipeline)
                 """.stripIndent()
