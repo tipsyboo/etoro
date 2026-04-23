@@ -20,7 +20,7 @@ To ensure the application is resilient to node failures and follows AKS best pra
 ### 3. Resource Optimization
 Based on empirical data gathered via `kubectl top`, I right-sized the resource requests to maintain efficiency:
 *   **CPU**: `5m` (Request).
-*   **Memory**: `16Mi` (Request).
+*   **Memory**: `32Mi` (Request).
 *   **Bursting**: I kept limits higher (`100m`/`128Mi`) to allow the Python interpreter to handle synchronous file operations (Pickle serialization) during traffic spikes.
 
 ### 4. Health Check Refinement
