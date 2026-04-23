@@ -45,6 +45,12 @@ pipeline {
                     if (params.ACTION == 'Deploy') {
                         echo "Deploying ${RELEASE_NAME} to ${NAMESPACE}..."
                         sh "helm upgrade --install ${RELEASE_NAME} ./simple-web -n ${NAMESPACE} --kubeconfig ${KUBECONFIG}"
+                        
+                        echo "Waiting for deployment rollout..."
+                        sh "kubectl rollout status deployment/${RELEASE_NAME} -n ${NAMESPACE} --kubeconfig ${KUBECONFIG} --timeout=90s"
+
+                        echo "Running internal smoke tests..."
+                        sh "helm test ${RELEASE_NAME} -n ${NAMESPACE} --kubeconfig ${KUBECONFIG}"
                     } 
                     else if (params.ACTION == 'Destroy') {
                         echo "Destroying ${RELEASE_NAME} from ${NAMESPACE}..."

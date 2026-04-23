@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "simple-web.fullname" . }}-test-functional"
+  labels:
+    {{- include "simple-web.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  containers:
+    - name: curl
+      image: curlimages/curl:8.19.0
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          URL="http://{{ include "simple-web.fullname" . }}:{{ .Values.service.port }}"
+          echo "Testing internal service: $URL"
+
+          RESPONSE=$(curl -s -w "%{http_code}" $URL)
+          
+          # Last 3 characters = code
+          STATUS=${RESPONSE: -3}
+          # Everything else = response
+          BODY=${RESPONSE:0:${#RESPONSE}-3}
+
+          if [ "$STATUS" -eq 200 ]; then
+            echo "SUCCESS: Received HTTP 200"
+          else
+            echo "FAILURE: Received HTTP $STATUS"
+            exit 1
+          fi
+
+          if echo "$BODY" | grep -q "Real Visit Results"; then
+            echo "SUCCESS: Content validation passed (found 'Real Visit Results')"
+          else
+            echo "FAILURE: Content validation failed (missing 'Real Visit Results')"
+            echo "Response snippet: $(echo $BODY | head -c 100)..."
+            exit 1
+          fi
+  restartPolicy: Never
