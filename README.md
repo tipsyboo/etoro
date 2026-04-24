@@ -61,7 +61,8 @@ The `Jenkinsfile` provides a fully automated lifecycle for the chart:
 *   **Actions**: Supports both `Deploy` and `Destroy` actions via pipeline parameters.
 
 ## Future Enhancements
-*   **Pod Disruption Budget (PDB)**: I have implemented a PDB template with `minAvailable: 1` to ensure zero downtime during node maintenance. This is currently **disabled** (`podDisruptionBudget.enabled: false`) due to cluster-level RBAC restrictions on the `policy` API group. 
+*   **Pod Disruption Budget (PDB)**: I have implemented a PDB template with `minAvailable: 1` to ensure zero downtime during node maintenance. This is currently **disabled** (`podDisruptionBudget.enabled: false`) due to cluster-level RBAC restrictions on the `policy` API group.
+*   **Migration to Kubernetes Gateway API**: I noticed the `envoy-gateway-system` is provisioned in the cluster. While this chart successfully implements the requested legacy `Ingress` resource via NGINX, a future enhancement would be migrating this routing logic to an `HTTPRoute` resource using the Envoy Gateway, aligning with modern Kubernetes networking standards. 
 
 ---
 *Developed by Pavel Nikolaichuk - DevOps Technical Assignment.*
