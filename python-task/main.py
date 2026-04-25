@@ -1,4 +1,6 @@
 from client import OpenLibraryClient
+from filters import filter_books
+from formatters import JSONFormatter
 
 def main():
     print("Initializing client...")
@@ -7,17 +9,28 @@ def main():
     print("Searching for books about 'python'...")
     try:
         response = client.search_books("python")
-        print(f"Success! Found {response.numFound} books.")
+        print(f"Success! Found {response.numFound} books on Open Library.")
         
-        if response.docs:
-            first_book = response.docs[0]
-            print("\nFirst book details:")
-            print(f"Title: {first_book.title}")
-            print(f"Authors: {', '.join(first_book.author_name)}")
-            print(f"Year: {first_book.first_publish_year}")
-            print(f"Key: {first_book.key}")
+        # Apply our business logic filters
+        # Look for "programming" in the title and published in or after 2000
+        filtered_results = filter_books(
+            books=response.docs,
+            title_keyword="programming",
+            min_year=2000
+        )
+        print(f"After filtering by title keyword 'programming' and min_year >= 2000, {len(filtered_results)} books remain.")
+        
+        if filtered_results:
+            output_file = "filtered_books.json"
+            print(f"Writing results to {output_file}...")
+            
+            # Using the Formatter interface
+            formatter = JSONFormatter()
+            formatter.format_and_save(filtered_results, output_file)
+            
+            print("Done!")
         else:
-            print("No books found in the response docs.")
+            print("No books matched the filter criteria.")
             
     except RuntimeError as e:
         print(f"An error occurred: {e}")
